@@ -74,5 +74,11 @@ int main(int argc, char *argv[]) {
 
     FILE *ptrace = fopen(argv[2], "r");
 
+    int memloc;
+    while((ret = fscanf(ptrace, "%d %d", &pid, &memloc)) != EOF) {
+        int global_page = processes[pid].start_pt + (memloc/pagesize);
+        printf("Process %d wants memory location %d which is physically at %d\n", pid, memloc, global_page);
+    }
+
     fclose(ptrace);
 }
