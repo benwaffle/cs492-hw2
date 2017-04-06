@@ -19,6 +19,8 @@ typedef struct {
 
 process *processes;
 
+int swap_count = 0;
+
 int main(int argc, char *argv[]) {
     if (argc != 6) {
         fprintf(stderr, "Usage %s\n"
@@ -81,4 +83,6 @@ int main(int argc, char *argv[]) {
     }
 
     fclose(ptrace);
+
+    printf("Swap count: %i", swap_count);
 }
