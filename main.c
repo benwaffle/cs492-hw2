@@ -77,6 +77,7 @@ int main(int argc, char *argv[]) {
 
     fclose(plist);
 
+    // allocate initial memory
     for (int i = 0; i < n_processes; ++i) {
         printf("alloc for proc %d\n", i);
         int pages_per_proc = 512 / pagesize / n_processes;
@@ -84,7 +85,7 @@ int main(int argc, char *argv[]) {
         int end_pt = MIN(processes[i].end_pt, start_pt + pages_per_proc);
         for (int j = start_pt; j < end_pt; ++j) {
             pt[j].valid = true;
-            printf("\tenabling proc %d\n", j);
+            printf("\tloading page %d\n", j);
         }
     }
 
@@ -98,6 +99,7 @@ int main(int argc, char *argv[]) {
 
     FILE *ptrace = fopen(argv[2], "r");
 
+    // start "running" programs
     int memloc;
     while((ret = fscanf(ptrace, "%d %d", &pid, &memloc)) != EOF) {
         int global_page = processes[pid].start_pt + (memloc/pagesize);
@@ -107,5 +109,5 @@ int main(int argc, char *argv[]) {
 
     fclose(ptrace);
 
-    printf("Swap count: %i", swap_count);
+    printf("Swap count: %d", swap_count);
 }
