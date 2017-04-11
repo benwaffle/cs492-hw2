@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <string.h>
 #include <assert.h>
 #include <math.h>
 #include <time.h>
@@ -22,6 +23,11 @@ typedef struct {
 
 process *processes;
 
+typedef enum {
+    CLOCK,
+    FIFO,
+    LRU
+} REPL_ALG;
 
 int main(int argc, char *argv[]) {
     if (argc != 6) {
@@ -36,6 +42,18 @@ int main(int argc, char *argv[]) {
     }
 
     int pagesize = atoi(argv[3]);
+
+    REPL_ALG alg;
+    if (strncmp(argv[4], "LRU", 3) == 0)
+        alg = LRU;
+    else if (strncmp(argv[4], "CLOCK", 5) == 0)
+        alg = CLOCK;
+    else if (strncmp(argv[4], "FIFO", 4) == 0)
+        alg = FIFO;
+    else {
+        fprintf(stderr, "Unknown replacement algorithm %s\n", argv[4]);
+        return 1;
+    }
 
     FILE *plist = fopen(argv[1], "r");
     // total number of pages all processes need
