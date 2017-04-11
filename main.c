@@ -22,7 +22,6 @@ typedef struct {
 
 process *processes;
 
-int swap_count = 0;
 
 int main(int argc, char *argv[]) {
     if (argc != 6) {
@@ -98,6 +97,8 @@ int main(int argc, char *argv[]) {
     }
 
     FILE *ptrace = fopen(argv[2], "r");
+
+    int swap_count = 0;
 
     // start "running" programs
     int memloc;
