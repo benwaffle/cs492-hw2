@@ -68,7 +68,7 @@ int main(int argc, char *argv[]) {
         page_cnt += num_pages;
     }
 
-    for (int i=0; i<n_processes; ++i) {
+    for (int i = 0; i < n_processes; ++i) {
         printf("pid = %d has pages %d..%d\n",
                 processes[i].pid,
                 processes[i].start_pt,
@@ -77,12 +77,12 @@ int main(int argc, char *argv[]) {
 
     fclose(plist);
 
-    for (int i=0; i<n_processes; ++i) {
+    for (int i = 0; i < n_processes; ++i) {
         printf("alloc for proc %d\n", i);
         int pages_per_proc = 512 / pagesize / n_processes;
         int start_pt = processes[i].start_pt;
         int end_pt = MIN(processes[i].end_pt, start_pt + pages_per_proc);
-        for (int j=start_pt; j<end_pt; ++j) {
+        for (int j = start_pt; j < end_pt; ++j) {
             pt[j].valid = true;
             printf("\tenabling proc %d\n", j);
         }
@@ -90,7 +90,7 @@ int main(int argc, char *argv[]) {
 
     { // checks
         int bytes_in_mem = 0;
-        for (int i=0; i<ptsize; ++i)
+        for (int i = 0; i < ptsize; ++i)
             if (pt[i].valid)
                 bytes_in_mem += pagesize;
         assert(bytes_in_mem <= 512);
