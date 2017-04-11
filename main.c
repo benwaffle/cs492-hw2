@@ -1,8 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <assert.h>
 #include <math.h>
 #include <time.h>
+
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 typedef struct {
     bool valid:1;
@@ -73,6 +76,25 @@ int main(int argc, char *argv[]) {
     }
 
     fclose(plist);
+
+    for (int i=0; i<n_processes; ++i) {
+        printf("alloc for proc %d\n", i);
+        int pages_per_proc = 512 / pagesize / n_processes;
+        int start_pt = processes[i].start_pt;
+        int end_pt = MIN(processes[i].end_pt, start_pt + pages_per_proc);
+        for (int j=start_pt; j<end_pt; ++j) {
+            pt[j].valid = true;
+            printf("\tenabling proc %d\n", j);
+        }
+    }
+
+    { // checks
+        int bytes_in_mem = 0;
+        for (int i=0; i<ptsize; ++i)
+            if (pt[i].valid)
+                bytes_in_mem += pagesize;
+        assert(bytes_in_mem <= 512);
+    }
 
     FILE *ptrace = fopen(argv[2], "r");
 
