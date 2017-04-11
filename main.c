@@ -55,6 +55,7 @@ void fifo_evict(int pid, int page, bool demand) {
         }
     assert(first_in != -1);
 
+    // find first page inserted
     for (int i = start_pt; i < end_pt; ++i) {
         if (pt[i].valid && cmp_timespec(pt[first_in].data, pt[i].data) > 0)
             first_in = i;
