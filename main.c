@@ -80,8 +80,7 @@ int main(int argc, char *argv[]) {
     while((ret = fscanf(ptrace, "%d %d", &pid, &memloc)) != EOF) {
         int global_page = processes[pid].start_pt + (memloc/pagesize);
         printf("Process %d wants memory location %d which is physically at %d\n", pid, memloc, global_page);
-        printf("The desired memory is ");
-        printf("%s.\n", pt[global_page].valid?"valid":"invalid");
+        printf("The desired memory is %s.\n", pt[global_page].valid ? "valid" : "invalid");
     }
 
     fclose(ptrace);
