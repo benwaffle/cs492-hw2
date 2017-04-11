@@ -10,7 +10,7 @@
 
 typedef struct {
     bool valid:1;
-    struct timespec last_access;
+    struct timespec data;
 } pt_entry;
 
 pt_entry *pt;
@@ -28,6 +28,49 @@ typedef enum {
     FIFO,
     LRU
 } REPL_ALG;
+
+int cmp_timespec(struct timespec a, struct timespec b) {
+    if (a.tv_sec < b.tv_sec)
+        return -1;
+    else if (a.tv_sec > b.tv_sec)
+        return 1;
+    else if (a.tv_nsec < b.tv_nsec)
+        return -1;
+    else if (a.tv_nsec > b.tv_nsec)
+        return 1;
+    else
+        return 1;
+}
+
+void fifo_evict(int pid, int page, bool demand) {
+    int start_pt = processes[pid].start_pt;
+    int end_pt = processes[pid].end_pt;
+    assert(start_pt <= page && page < end_pt);
+    int first_in = -1;
+    // first valid page
+    for (int i = start_pt; i < end_pt; ++i)
+        if (pt[i].valid) {
+            first_in = i;
+            break;
+        }
+    assert(first_in != -1);
+
+    for (int i = start_pt; i < end_pt; ++i) {
+        if (pt[i].valid && cmp_timespec(pt[first_in].data, pt[i].data) > 0)
+            first_in = i;
+    }
+
+    assert(start_pt <= first_in && first_in < end_pt);
+
+    pt[first_in].valid = false; // remove old page
+    pt[page].valid = true; // insert new page
+    // set 'in' time for new page
+    if (clock_gettime(CLOCK_MONOTONIC, &pt[page].data) == -1) {
+        perror("clock_gettime");
+        exit(1);
+    }
+    printf("[%d] replacing page %d for %d\n", pid, first_in, page);
+}
 
 int main(int argc, char *argv[]) {
     if (argc != 6) {
@@ -102,6 +145,14 @@ int main(int argc, char *argv[]) {
         int end_pt = MIN(processes[i].end_pt, start_pt + pages_per_proc);
         for (int j = start_pt; j < end_pt; ++j) {
             pt[j].valid = true;
+            if (alg == FIFO) {
+                // for FIFO, set the 'in' time
+                if (clock_gettime(CLOCK_MONOTONIC, &pt[j].data) == -1) {
+                    perror("clock_gettime");
+                    return 1;
+                }
+            }
+            // for LRU, calloc already sets .tv_sec and .tv_nsec to 0
             printf("\tloading page %d\n", j);
         }
     }
@@ -131,7 +182,7 @@ int main(int argc, char *argv[]) {
         if (!pt[global_page].valid) {
             swap_count++;
 
-            //assert(pt[global_page].start_pt <= page_swapped && page_swapped < pt[global_page].end_pt);
+            if (alg == FIFO) fifo_evict(pid, global_page, false /* TODO */);
         }
     }
 
