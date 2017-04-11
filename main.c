@@ -137,5 +137,5 @@ int main(int argc, char *argv[]) {
 
     fclose(ptrace);
 
-    printf("Swap count: %d", swap_count);
+    printf("Swap count: %d\n", swap_count);
 }
