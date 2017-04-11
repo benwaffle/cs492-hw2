@@ -102,9 +102,18 @@ int main(int argc, char *argv[]) {
     // start "running" programs
     int memloc;
     while((ret = fscanf(ptrace, "%d %d", &pid, &memloc)) != EOF) {
-        int global_page = processes[pid].start_pt + (memloc/pagesize);
-        printf("Process %d wants memory location %d which is physically at %d\n", pid, memloc, global_page);
-        printf("The desired memory is %s.\n", pt[global_page].valid ? "valid" : "invalid");
+        memloc--; // memory locations in the file start at 1
+        int start_pt = processes[pid].start_pt;
+        int end_pt = processes[pid].end_pt;
+        int global_page = start_pt + (memloc/pagesize);
+        printf("p%d needs mem[%d], page = %d (should be in %d..%d)\n", pid, memloc, global_page, start_pt, end_pt);
+        assert(start_pt <= global_page && global_page < end_pt);
+
+        if (!pt[global_page].valid) {
+            swap_count++;
+
+            //assert(pt[global_page].start_pt <= page_swapped && page_swapped < pt[global_page].end_pt);
+        }
     }
 
     fclose(ptrace);
