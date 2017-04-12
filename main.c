@@ -197,9 +197,9 @@ int main(int argc, char *argv[]) {
 
             if (alg == FIFO || alg == LRU)
                 fifo_lru_evict(pid, global_page);
-                //evict next page
                 if (prepaging) {
                   for (int i = global_page+1; i < end_pt; i++) {
+            // load next page
                     if (!pt[i].valid) {
                       fifo_lru_evict(pid, i);
                       break;
