@@ -10,6 +10,7 @@
 
 typedef struct {
     bool valid:1;
+    bool referenced:1;
     struct timespec data;
 } pt_entry;
 
@@ -19,6 +20,7 @@ typedef struct {
     int pid;
     int start_pt;
     int end_pt;
+    int clock_hand;
 } process;
 
 process *processes;
@@ -42,7 +44,7 @@ int cmp_timespec(struct timespec a, struct timespec b) {
         return 1;
 }
 
-void fifo_lru_evict(int pid, int page) {
+void load_page(int pid, int page, REPL_ALG alg) {
     int start_pt = processes[pid].start_pt;
     int end_pt = processes[pid].end_pt;
     assert(start_pt <= page && page < end_pt);
@@ -56,19 +58,59 @@ void fifo_lru_evict(int pid, int page) {
     assert(to_swap != -1);
 
     // find first page inserted
-    for (int i = start_pt; i < end_pt; ++i) {
-        if (pt[i].valid && cmp_timespec(pt[to_swap].data, pt[i].data) > 0)
-            to_swap = i;
+    if (alg == FIFO || alg == LRU) {
+        for (int i = start_pt; i < end_pt; ++i) {
+            if (pt[i].valid && cmp_timespec(pt[to_swap].data, pt[i].data) > 0)
+                to_swap = i;
+        }
+    } else if (alg == CLOCK) {
+        int hand = processes[pid].clock_hand;
+
+#ifndef NDEBUG
+        printf("CLOCK\n");
+#endif
+        for (int i = hand; ; ++i) {
+            int j = start_pt + (i % (end_pt - start_pt));
+#ifndef NDEBUG
+            printf("\tchecking %d + %d (mod %d) = %d...", start_pt, i % (end_pt - start_pt), end_pt - start_pt, j);
+#endif
+            if (pt[j].valid) {
+                if (pt[j].referenced) {
+#ifndef NDEBUG
+                    printf("R = 0\n");
+#endif
+                    pt[j].referenced = false;
+                } else {
+#ifndef NDEBUG
+                    printf("this one!\n");
+#endif
+                    hand = j;
+                    break;
+                }
+            } else {
+#ifndef NDEBUG
+                printf("invalid\n");
+#endif
+            }
+
+        }
+        to_swap = hand;
+
+        processes[pid].clock_hand = (hand + 1) % (end_pt - start_pt);
     }
 
     assert(start_pt <= to_swap && to_swap < end_pt);
 
     pt[to_swap].valid = false; // remove old page
     pt[page].valid = true; // insert new page
-    // set 'in' time for new page
-    if (clock_gettime(CLOCK_MONOTONIC, &pt[page].data) == -1) {
-        perror("clock_gettime");
-        exit(1);
+    if (alg == FIFO || alg == LRU) {
+        // set FIFO 'in' or LRU 'used' time for new page
+        if (clock_gettime(CLOCK_MONOTONIC, &pt[page].data) == -1) {
+            perror("clock_gettime");
+            exit(1);
+        }
+    } else if (alg == CLOCK) {
+        pt[page].referenced = true;
     }
 #ifndef NDEBUG
     printf("[%d] replacing page %d for %d\n", pid, to_swap, page);
@@ -113,6 +155,10 @@ int main(int argc, char *argv[]) {
         n_processes++;
     }
 
+    // calloc sets memory to 0, so we have:
+    // .valid = false
+    // .referenced = false
+    // .data = {0,0}
     pt = calloc(ptsize, sizeof(pt_entry));
     processes = calloc(n_processes, sizeof(process));
 
@@ -127,7 +173,8 @@ int main(int argc, char *argv[]) {
         processes[proc_cnt] = (process) {
             .pid = pid,
             .start_pt = page_cnt,
-            .end_pt = page_cnt + num_pages
+            .end_pt = page_cnt + num_pages,
+            .clock_hand = 0
         };
         ++proc_cnt;
         page_cnt += num_pages;
@@ -155,11 +202,13 @@ int main(int argc, char *argv[]) {
         for (int j = start_pt; j < end_pt; ++j) {
             pt[j].valid = true;
             if (alg == FIFO) {
-                // for FIFO, set the 'in' time
+                // for FIFO or CLOCK, set the 'in' time
                 if (clock_gettime(CLOCK_MONOTONIC, &pt[j].data) == -1) {
                     perror("clock_gettime");
                     return 1;
                 }
+            } else if (alg == CLOCK) {
+                pt[j].referenced = true; // TODO
             }
             // for LRU, calloc already sets .tv_sec and .tv_nsec to 0
 #ifndef NDEBUG
@@ -195,14 +244,15 @@ int main(int argc, char *argv[]) {
         if (!pt[global_page].valid) {
             swap_count++;
 
-            if (alg == FIFO || alg == LRU)
-                fifo_lru_evict(pid, global_page);
+            load_page(pid, global_page, alg);
+
             // load next page
             if (prepaging) {
                 bool found_page = false;
+                // TODO use modulus
                 for (int i = global_page+1; i < end_pt; i++) {
                     if (!pt[i].valid) {
-                        fifo_lru_evict(pid, i);
+                        load_page(pid, i, alg);
                         found_page = true;
                         break;
                     }
@@ -210,17 +260,20 @@ int main(int argc, char *argv[]) {
                 if (!found_page)
                     for (int i = start_pt; i < global_page; ++i) {
                         if (!pt[i].valid) {
-                            fifo_lru_evict(pid, i);
+                            load_page(pid, i, alg);
                             break;
                         }
                     }
             }
         } else {
-            if (alg == LRU) // for LRU, set the time when used
+            if (alg == LRU) { // for LRU, set the time when used
                 if (clock_gettime(CLOCK_MONOTONIC, &pt[global_page].data) == -1) {
                     perror("clock_gettime");
                     return 1;
                 }
+            } else if (alg == CLOCK) {
+                pt[global_page].referenced = true;
+            }
         }
     }
 
