@@ -70,7 +70,9 @@ void fifo_lru_evict(int pid, int page, bool prepaging) {
         perror("clock_gettime");
         exit(1);
     }
+#ifndef NDEBUG
     printf("[%d] replacing page %d for %d\n", pid, to_swap, page);
+#endif
 }
 
 int main(int argc, char *argv[]) {
@@ -129,18 +131,22 @@ int main(int argc, char *argv[]) {
         page_cnt += num_pages;
     }
 
+#ifndef NDEBUG
     for (int i = 0; i < n_processes; ++i) {
         printf("pid = %d has pages %d..%d\n",
                 processes[i].pid,
                 processes[i].start_pt,
                 processes[i].end_pt-1);
     }
+#endif
 
     fclose(plist);
 
     // allocate initial memory
     for (int i = 0; i < n_processes; ++i) {
+#ifndef NDEBUG
         printf("alloc for proc %d\n", i);
+#endif
         int pages_per_proc = 512 / pagesize / n_processes;
         int start_pt = processes[i].start_pt;
         int end_pt = MIN(processes[i].end_pt, start_pt + pages_per_proc);
@@ -154,7 +160,9 @@ int main(int argc, char *argv[]) {
                 }
             }
             // for LRU, calloc already sets .tv_sec and .tv_nsec to 0
+#ifndef NDEBUG
             printf("\tloading page %d\n", j);
+#endif
         }
     }
 
@@ -177,7 +185,9 @@ int main(int argc, char *argv[]) {
         int start_pt = processes[pid].start_pt;
         int end_pt = processes[pid].end_pt;
         int global_page = start_pt + (memloc/pagesize);
+#ifndef NDEBUG
         printf("p%d needs mem[%d], page = %d (should be in %d..%d)\n", pid, memloc, global_page, start_pt, end_pt);
+#endif
         assert(start_pt <= global_page && global_page < end_pt);
 
         if (!pt[global_page].valid) {
