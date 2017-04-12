@@ -89,12 +89,7 @@ int main(int argc, char *argv[]) {
 
     int pagesize = atoi(argv[3]);
 
-    bool prepaging;
-    if (strncmp(argv[5], "+", 1) == 0) {
-      prepaging = true;
-    } else {
-      prepaging = false;
-    }
+    bool prepaging = (strncmp(argv[5], "+", 1) == 0);
 
     REPL_ALG alg;
     if (strncmp(argv[4], "LRU", 3) == 0)
