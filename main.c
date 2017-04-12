@@ -42,35 +42,35 @@ int cmp_timespec(struct timespec a, struct timespec b) {
         return 1;
 }
 
-void fifo_evict(int pid, int page, bool demand) {
+void fifo_lru_evict(int pid, int page, bool demand) {
     int start_pt = processes[pid].start_pt;
     int end_pt = processes[pid].end_pt;
     assert(start_pt <= page && page < end_pt);
-    int first_in = -1;
+    int to_swap = -1;
     // first valid page
     for (int i = start_pt; i < end_pt; ++i)
         if (pt[i].valid) {
-            first_in = i;
+            to_swap = i;
             break;
         }
-    assert(first_in != -1);
+    assert(to_swap != -1);
 
     // find first page inserted
     for (int i = start_pt; i < end_pt; ++i) {
-        if (pt[i].valid && cmp_timespec(pt[first_in].data, pt[i].data) > 0)
-            first_in = i;
+        if (pt[i].valid && cmp_timespec(pt[to_swap].data, pt[i].data) > 0)
+            to_swap = i;
     }
 
-    assert(start_pt <= first_in && first_in < end_pt);
+    assert(start_pt <= to_swap && to_swap < end_pt);
 
-    pt[first_in].valid = false; // remove old page
+    pt[to_swap].valid = false; // remove old page
     pt[page].valid = true; // insert new page
     // set 'in' time for new page
     if (clock_gettime(CLOCK_MONOTONIC, &pt[page].data) == -1) {
         perror("clock_gettime");
         exit(1);
     }
-    printf("[%d] replacing page %d for %d\n", pid, first_in, page);
+    printf("[%d] replacing page %d for %d\n", pid, to_swap, page);
 }
 
 int main(int argc, char *argv[]) {
@@ -183,7 +183,14 @@ int main(int argc, char *argv[]) {
         if (!pt[global_page].valid) {
             swap_count++;
 
-            if (alg == FIFO) fifo_evict(pid, global_page, false /* TODO */);
+            if (alg == FIFO || alg == LRU)
+                fifo_lru_evict(pid, global_page, false /* TODO */);
+        } else {
+            if (alg == LRU) // for LRU, set the time when used
+                if (clock_gettime(CLOCK_MONOTONIC, &pt[global_page].data) == -1) {
+                    perror("clock_gettime");
+                    return 1;
+                }
         }
     }
 
