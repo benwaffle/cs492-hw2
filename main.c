@@ -42,7 +42,7 @@ int cmp_timespec(struct timespec a, struct timespec b) {
         return 1;
 }
 
-void fifo_lru_evict(int pid, int page, bool demand) {
+void fifo_lru_evict(int pid, int page, bool prepaging) {
     int start_pt = processes[pid].start_pt;
     int end_pt = processes[pid].end_pt;
     assert(start_pt <= page && page < end_pt);
