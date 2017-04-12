@@ -199,12 +199,21 @@ int main(int argc, char *argv[]) {
                 fifo_lru_evict(pid, global_page);
             // load next page
             if (prepaging) {
+                bool found_page = false;
                 for (int i = global_page+1; i < end_pt; i++) {
                     if (!pt[i].valid) {
                         fifo_lru_evict(pid, i);
+                        found_page = true;
                         break;
                     }
                 }
+                if (!found_page)
+                    for (int i = start_pt; i < global_page; ++i) {
+                        if (!pt[i].valid) {
+                            fifo_lru_evict(pid, i);
+                            break;
+                        }
+                    }
             }
         } else {
             if (alg == LRU) // for LRU, set the time when used
