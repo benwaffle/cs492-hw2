@@ -42,7 +42,7 @@ int cmp_timespec(struct timespec a, struct timespec b) {
         return 1;
 }
 
-void fifo_lru_evict(int pid, int page, bool prepaging) {
+void fifo_lru_evict(int pid, int page) {
     int start_pt = processes[pid].start_pt;
     int end_pt = processes[pid].end_pt;
     assert(start_pt <= page && page < end_pt);
@@ -88,6 +88,13 @@ int main(int argc, char *argv[]) {
     }
 
     int pagesize = atoi(argv[3]);
+
+    bool prepaging;
+    if (strncmp(argv[5], "+", 1) == 0) {
+      prepaging = true;
+    } else {
+      prepaging = false;
+    }
 
     REPL_ALG alg;
     if (strncmp(argv[4], "LRU", 3) == 0)
@@ -194,7 +201,16 @@ int main(int argc, char *argv[]) {
             swap_count++;
 
             if (alg == FIFO || alg == LRU)
-                fifo_lru_evict(pid, global_page, false /* TODO */);
+                fifo_lru_evict(pid, global_page);
+                //evict next page
+                if (prepaging) {
+                  for (int i = global_page+1; i < end_pt; i++) {
+                    if (!pt[i].valid) {
+                      fifo_lru_evict(pid, i);
+                      break;
+                    }
+                  }
+                }
         } else {
             if (alg == LRU) // for LRU, set the time when used
                 if (clock_gettime(CLOCK_MONOTONIC, &pt[global_page].data) == -1) {
