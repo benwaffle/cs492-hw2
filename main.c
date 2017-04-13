@@ -65,6 +65,7 @@ void load_page(int pid, int page, REPL_ALG alg) {
         }
     } else if (alg == CLOCK) {
         int hand = processes[pid].clock_hand;
+        assert(0 <= hand && hand < (end_pt - start_pt));
 
 #ifndef NDEBUG
         printf("CLOCK\n");
