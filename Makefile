@@ -10,4 +10,7 @@ main: main.c
 clean:
 	$(RM) main
 
-.PHONY: clean
+check: main
+	./check.sh
+
+.PHONY: clean check
