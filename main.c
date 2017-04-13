@@ -186,13 +186,13 @@ int main(int argc, char *argv[]) {
         for (int j = start_pt; j < end_pt; ++j) {
             pt[j].valid = true;
             if (alg == FIFO) {
-                // for FIFO or CLOCK, set the 'in' time
+                // for FIFO, set the 'in' time
                 if (clock_gettime(CLOCK_MONOTONIC, &pt[j].data) == -1) {
                     perror("clock_gettime");
                     return 1;
                 }
             } else if (alg == CLOCK) {
-                pt[j].referenced = true; // TODO
+                pt[j].referenced = true;
             }
             // for LRU, calloc already sets .tv_sec and .tv_nsec to 0
 #ifndef NDEBUG
