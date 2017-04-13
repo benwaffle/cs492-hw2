@@ -67,33 +67,16 @@ void load_page(int pid, int page, REPL_ALG alg) {
         int hand = processes[pid].clock_hand;
         assert(0 <= hand && hand < (end_pt - start_pt));
 
-#ifndef NDEBUG
-        printf("CLOCK\n");
-#endif
         for (int i = hand; ; ++i) {
             int j = start_pt + (i % (end_pt - start_pt));
-#ifndef NDEBUG
-            printf("\tchecking %d + %d (mod %d) = %d...", start_pt, i % (end_pt - start_pt), end_pt - start_pt, j);
-#endif
             if (pt[j].valid) {
                 if (pt[j].referenced) {
-#ifndef NDEBUG
-                    printf("R = 0\n");
-#endif
                     pt[j].referenced = false;
                 } else {
-#ifndef NDEBUG
-                    printf("this one!\n");
-#endif
                     hand = j;
                     break;
                 }
-            } else {
-#ifndef NDEBUG
-                printf("invalid\n");
-#endif
             }
-
         }
         to_swap = hand;
 
